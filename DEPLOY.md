@@ -3,6 +3,22 @@
 Aplikasi ini PHP 8 + MySQL biasa, jadi bisa dipasang di hampir semua shared hosting
 cPanel. Ada dua cara menghubungkan hosting dengan repo GitHub ini.
 
+## Halaman produk di GitHub Pages (opsional)
+
+GitHub Pages hanya menyajikan file statis: PHP dan MySQL tidak bisa jalan di sana,
+jadi **aplikasi lengkap tidak bisa hidup di GitHub Pages**. Branch `gh-pages` di repo
+ini berisi halaman produk statis (beranda dengan screenshot) untuk dibagikan.
+
+1. Di GitHub, buka **Settings > Pages**.
+2. **Build and deployment > Source**: pilih *Deploy from a branch*.
+3. **Branch**: pilih `gh-pages`, folder `/(root)`, klik **Save**.
+4. Halaman hidup di `https://repowahyuillahi.github.io/yaya-gallery/` dalam 1-2 menit.
+
+Menjalankan ulang halaman produk setelah perubahan: salin `index.html` statis beserta
+`assets/` ke branch `gh-pages`. Catatan: tombol "Masuk ke aplikasi" di halaman statis
+masih menunjuk ke repo GitHub; setelah aplikasi live di hosting, ganti `href`-nya
+(ada komentar penanda di `index.html` branch `gh-pages`).
+
 ## Persiapan (sekali)
 
 1. **Buat database** di cPanel > MySQL Databases:
