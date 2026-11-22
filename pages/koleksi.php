@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/layout.php';
+require_once __DIR__ . '/../app/layout.php';
 
 require_login();
 $action = $_GET['action'] ?? '';
@@ -24,8 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'hapus') {
         redirect('koleksi.php');
     }
     q('DELETE FROM dresses WHERE id = ?', [$id]);
-    if ($dress['photo'] && is_file(__DIR__ . '/uploads/' . $dress['photo'])) {
-        unlink(__DIR__ . '/uploads/' . $dress['photo']);
+    if ($dress['photo'] && is_file(app_dir($dress['photo']))) {
+        unlink(app_dir($dress['photo']));
     }
     flash_set('ok', 'Baju ' . $dress['code'] . ' dihapus.');
     redirect('koleksi.php');
@@ -176,7 +176,7 @@ render_flash();
                 <div class="span-all">
                     <label for="photoInput">Foto baju</label>
                     <?php if (!empty($edit['photo'])): ?>
-                        <img src="<?= e($edit['photo']) ?>" alt="Foto <?= e($edit['name']) ?>" width="120" height="120"
+                        <img src="<?= u($edit["photo"]) ?>" alt="Foto <?= e($edit['name']) ?>" width="120" height="120"
                              style="border-radius:var(--radius-s);object-fit:cover;margin-bottom:8px;display:block">
                     <?php endif; ?>
                     <img id="photoPreview" src="" alt="" width="120" height="120" hidden
@@ -229,7 +229,7 @@ render_flash();
                 <article class="dresscard">
                     <div class="photo">
                         <?php if ($d['photo']): ?>
-                            <img src="<?= e($d['photo']) ?>" alt="Foto <?= e($d['name']) ?>" width="400" height="300" loading="lazy">
+                            <img src="<?= u($d["photo"]) ?>" alt="Foto <?= e($d['name']) ?>" width="400" height="300" loading="lazy">
                         <?php else: ?>
                             <div class="pick-noimg">Belum ada foto</div>
                         <?php endif; ?>

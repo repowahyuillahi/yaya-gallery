@@ -19,7 +19,7 @@ function current_user(): ?array
 function require_login(): void
 {
     if (!current_user()) {
-        redirect('login.php');
+        redirect(u('login.php'));
     }
 }
 
@@ -34,7 +34,7 @@ function require_admin(): void
     require_login();
     if (!is_admin()) {
         flash_set('error', 'Menu ini hanya untuk admin.');
-        redirect('index.php');
+        redirect(u('pages/dashboard.php'));
     }
 }
 

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/layout.php';
+require_once __DIR__ . '/../app/layout.php';
 
 require_admin();
 
@@ -56,7 +56,7 @@ render_flash();
             <div class="span-all">
                 <label for="logoInput">Logo bisnis</label>
                 <?php if (!empty($s['logo'])): ?>
-                    <img src="<?= e($s['logo']) ?>" alt="Logo bisnis" width="64" height="64"
+                    <img src="<?= u($s["logo"]) ?>" alt="Logo bisnis" width="64" height="64"
                          style="border-radius:var(--radius-s);object-fit:cover;margin-bottom:8px;display:block">
                 <?php endif; ?>
                 <input type="file" id="logoInput" name="logo" accept="image/jpeg,image/png,image/webp">

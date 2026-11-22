@@ -9,17 +9,17 @@ Aplikasi manajemen rental baju dan keuangan untuk butik YAYA Gallery. Berjalan d
 2. Import skema database (sekali saja):
 
    ```
-   C:\xampp\mysql\bin\mysql.exe -u root < database.sql
+   C:\xampp\mysql\bin\mysql.exe -u root < database/database.sql
    ```
 
 3. (Opsional) Isi data contoh supaya aplikasi langsung terlihat berisi. Semua data
    contoh bisa dihapus kapan saja dari aplikasi:
 
    ```
-   C:\xampp\mysql\bin\mysql.exe -u root yaya_gallery < database_contoh.sql
+   C:\xampp\mysql\bin\mysql.exe -u root yaya_gallery < database/database_contoh.sql
    ```
 
-4. Buka `http://localhost/yaya-gallery/`.
+4. Buka `http://localhost/yaya-gallery/` (halaman utama aplikasi).
 5. Login awal: username **admin**, password **admin123**. Segera ganti password di
    menu **Pengguna**.
 
@@ -50,27 +50,30 @@ Aplikasi manajemen rental baju dan keuangan untuk butik YAYA Gallery. Berjalan d
 ## Struktur
 
 ```
-database.sql            skema + akun admin awal
-database_contoh.sql     data contoh (opsional)
-config.php              koneksi DB + helper
-auth.php                sesi login dan hak akses
-layout.php              kerangka UI (sidebar, topbar, badge, empty state)
-index.php               dashboard
-koleksi.php             inventaris baju + foto
-pelanggan.php           database pelanggan + riwayat
-sewa.php                daftar transaksi
-sewa_form.php           form transaksi baru
-sewa_detail.php         detail, pembayaran, batalkan
-invoice.php             invoice cetak/PDF
-pengembalian.php        proses retur, laundry, perbaikan
-piutang.php             tagihan pelanggan
-utang.php               utang usaha + pembayaran
-pemasukan.php           uang masuk + pendapatan lainnya
-pengeluaran.php         biaya operasional + bukti foto
-laporan.php             laporan keuangan
-laporan_export.php      ekspor CSV
-pengaturan.php          profil bisnis, denda, deposit, logo
-users.php               manajemen akun
-assets/                 CSS dan JS
-uploads/                foto baju, bukti, logo
+index.php, login.php, logout.php   titik masuk (beranda, sesi)
+app/
+  config.php                       koneksi DB, helper, jalur URL
+  config.local.php                 kredensial hosting (tidak ikut repo)
+  auth.php                         sesi login dan hak akses
+  layout.php                       kerangka UI (sidebar, topbar, badge)
+pages/
+  dashboard.php                    ringkasan bisnis
+  koleksi.php                      inventaris baju + foto
+  pelanggan.php                    database pelanggan + riwayat
+  sewa.php                         daftar transaksi
+  sewa_form.php                    form transaksi baru
+  sewa_detail.php                  detail, pembayaran, batalkan
+  invoice.php                      invoice cetak/PDF
+  pengembalian.php                 proses retur, laundry, perbaikan
+  piutang.php                      tagihan pelanggan
+  utang.php                        utang usaha + pembayaran
+  pemasukan.php                    uang masuk + pendapatan lainnya
+  pengeluaran.php                  biaya operasional + bukti foto
+  laporan.php                      laporan keuangan
+  laporan_export.php               ekspor CSV
+  pengaturan.php                   profil bisnis, denda, deposit, logo
+  users.php                        manajemen akun
+assets/                            CSS, JS, gambar
+database/                          skema + data contoh
+uploads/                           foto baju, bukti, logo (lokal)
 ```

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/layout.php';
+require_once __DIR__ . '/../app/layout.php';
 
 require_login();
 $id = (int)($_GET['id'] ?? 0);
@@ -35,7 +35,7 @@ $brand = $s['business_name'] ?: 'YAYA Gallery';
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="<?= u("assets/css/style.css") ?>">
 </head>
 <body class="invoice-body">
 <div class="invoice-actions no-print" style="margin-top:20px">
@@ -105,6 +105,6 @@ $brand = $s['business_name'] ?: 'YAYA Gallery';
 
     <p class="invoice-foot"><?= e($s['invoice_notes'] ?: 'Terima kasih telah menyewa di ' . $brand . '.') ?></p>
 </main>
-<script src="assets/js/app.js" defer></script>
+<script src="<?= u("assets/js/app.js") ?>" defer></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/layout.php';
+require_once __DIR__ . '/../app/layout.php';
 
 require_login();
 refresh_booking_statuses();
@@ -49,7 +49,7 @@ $recent = qall(
      LIMIT 6"
 );
 
-page_start('Dashboard', 'index.php');
+page_start('Dashboard', 'dashboard.php');
 render_flash();
 ?>
 <div class="dash">

@@ -87,24 +87,24 @@ function page_start(string $title, string $active): void
     $brand = $s['business_name'] ?: 'YAYA Gallery';
     $groups = [
         'Operasional' => [
-            ['index.php', 'index.php', 'dashboard', 'Dashboard'],
-            ['koleksi.php', 'koleksi.php', 'koleksi', 'Koleksi Baju'],
-            ['sewa.php', 'sewa.php', 'sewa', 'Penyewaan'],
-            ['pengembalian.php', 'pengembalian.php', 'pengembalian', 'Pengembalian'],
-            ['pelanggan.php', 'pelanggan.php', 'pelanggan', 'Pelanggan'],
+            ['pages/dashboard.php', 'dashboard.php', 'dashboard', 'Dashboard'],
+            ['pages/koleksi.php', 'koleksi.php', 'koleksi', 'Koleksi Baju'],
+            ['pages/sewa.php', 'sewa.php', 'sewa', 'Penyewaan'],
+            ['pages/pengembalian.php', 'pengembalian.php', 'pengembalian', 'Pengembalian'],
+            ['pages/pelanggan.php', 'pelanggan.php', 'pelanggan', 'Pelanggan'],
         ],
         'Keuangan' => [
-            ['piutang.php', 'piutang.php', 'piutang', 'Piutang'],
-            ['utang.php', 'utang.php', 'utang', 'Utang Usaha'],
-            ['pemasukan.php', 'pemasukan.php', 'pemasukan', 'Pemasukan'],
-            ['pengeluaran.php', 'pengeluaran.php', 'pengeluaran', 'Pengeluaran'],
-            ['laporan.php', 'laporan.php', 'laporan', 'Laporan'],
+            ['pages/piutang.php', 'piutang.php', 'piutang', 'Piutang'],
+            ['pages/utang.php', 'utang.php', 'utang', 'Utang Usaha'],
+            ['pages/pemasukan.php', 'pemasukan.php', 'pemasukan', 'Pemasukan'],
+            ['pages/pengeluaran.php', 'pengeluaran.php', 'pengeluaran', 'Pengeluaran'],
+            ['pages/laporan.php', 'laporan.php', 'laporan', 'Laporan'],
         ],
     ];
     if ($user && $user['role'] === 'admin') {
         $groups['Sistem'] = [
-            ['pengaturan.php', 'pengaturan.php', 'pengaturan', 'Pengaturan'],
-            ['users.php', 'users.php', 'pengguna', 'Pengguna'],
+            ['pages/pengaturan.php', 'pengaturan.php', 'pengaturan', 'Pengaturan'],
+            ['pages/users.php', 'users.php', 'pengguna', 'Pengguna'],
         ];
     }
     ?>
@@ -117,8 +117,8 @@ function page_start(string $title, string $active): void
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css">
-<script src="assets/js/app.js" defer></script>
+<link rel="stylesheet" href="<?= u("assets/css/style.css") ?>">
+<script src="<?= u("assets/js/app.js") ?>" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Langsung ke isi</a>
@@ -126,7 +126,7 @@ function page_start(string $title, string $active): void
     <aside class="sidebar" id="sidebar" aria-label="Menu utama">
         <p class="brand">
             <?php if (!empty($s['logo'])): ?>
-                <img src="<?= e($s['logo']) ?>" alt="" width="34" height="34">
+                <img src="<?= u($s['logo']) ?>" alt="" width="34" height="34">
             <?php endif; ?>
             <span class="brand-name"><?= e($brand) ?></span>
         </p>
@@ -139,7 +139,7 @@ function page_start(string $title, string $active): void
                 <?php endforeach; ?>
             <?php endforeach; ?>
         </nav>
-        <a class="nav-logout" href="logout.php"><?= icon('logout') ?><span>Keluar</span></a>
+        <a class="nav-logout" href="<?= u("logout.php") ?>"><?= icon('logout') ?><span>Keluar</span></a>
     </aside>
     <div class="overlay" id="overlay" hidden></div>
     <div class="maincol">

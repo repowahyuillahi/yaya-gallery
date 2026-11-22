@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/layout.php';
+require_once __DIR__ . '/../app/layout.php';
 
 require_login();
 
@@ -191,7 +191,7 @@ render_flash();
                             <input type="checkbox" name="items[]" value="<?= (int)$d['id'] ?>" data-price="<?= (int)$d['rent_price'] ?>">
                             <span class="pick-body">
                                 <?php if ($d['photo']): ?>
-                                    <img src="<?= e($d['photo']) ?>" alt="Foto <?= e($d['name']) ?>" width="160" height="160" loading="lazy">
+                                    <img src="<?= u($d["photo"]) ?>" alt="Foto <?= e($d['name']) ?>" width="160" height="160" loading="lazy">
                                 <?php else: ?>
                                     <span class="pick-noimg">Belum ada foto</span>
                                 <?php endif; ?>

@@ -11,6 +11,9 @@ uploads/receipts/*
 uploads/logo/*
 !uploads/logo/index.php
 
+# Kredensial hosting tidak pernah ikut repo
+app/config.local.php
+
 .zcode-site/
 .zcode-site.json
 *.log

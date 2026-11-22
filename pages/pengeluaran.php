@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/layout.php';
+require_once __DIR__ . '/../app/layout.php';
 
 require_login();
 $action = $_GET['action'] ?? '';
@@ -31,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'hapus') {
         redirect('pengeluaran.php');
     }
     q('DELETE FROM expenses WHERE id = ?', [$id]);
-    if ($exp['receipt_photo'] && is_file(__DIR__ . '/uploads/' . $exp['receipt_photo'])) {
-        unlink(__DIR__ . '/uploads/' . $exp['receipt_photo']);
+    if ($exp['receipt_photo'] && is_file(app_dir($exp['receipt_photo']))) {
+        unlink(app_dir($exp['receipt_photo']));
     }
     flash_set('ok', 'Pengeluaran ' . rupiah($exp['amount']) . ' dihapus.');
     redirect('pengeluaran.php');
@@ -138,7 +138,7 @@ render_flash();
                 <div class="span-all">
                     <label for="buktiInput">Bukti pembayaran (foto)</label>
                     <?php if (!empty($v['receipt_photo'])): ?>
-                        <img src="<?= e($v['receipt_photo']) ?>" alt="Bukti pembayaran" width="120" height="120"
+                        <img src="<?= u($v['receipt_photo']) ?>" alt="Bukti pembayaran" width="120" height="120"
                              style="border-radius:var(--radius-s);object-fit:cover;margin-bottom:8px;display:block">
                     <?php endif; ?>
                     <input type="file" id="buktiInput" name="bukti" accept="image/jpeg,image/png,image/webp">
@@ -205,7 +205,7 @@ render_flash();
                         <td><?= e($kategori[$r['category']] ?? $r['category']) ?></td>
                         <td><?= e($r['description']) ?><?= $r['creditor_name'] ? '<span class="cell-sub">utang: ' . e($r['creditor_name']) . '</span>' : '' ?></td>
                         <td><?= badge($r['method']) ?></td>
-                        <td><?= $r['receipt_photo'] ? '<a class="textlink" href="' . e($r['receipt_photo']) . '" target="_blank" rel="noopener">Lihat</a>' : '-' ?></td>
+                        <td><?= $r['receipt_photo'] ? '<a class="textlink" href="' . u($r['receipt_photo']) . '" target="_blank" rel="noopener">Lihat</a>' : '-' ?></td>
                         <td class="num"><?= rupiah($r['amount']) ?></td>
                         <td>
                             <span class="rowactions">

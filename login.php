@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/app/config.php';
 
 if (!empty($_SESSION['user_id'])) {
-    redirect('index.php');
+    redirect(u('pages/dashboard.php'));
 }
 
 $error = '';
@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($u && password_verify(post('password'), $u['password_hash'])) {
         session_regenerate_id(true);
         $_SESSION['user_id'] = (int)$u['id'];
-        redirect('index.php');
+        redirect(u('pages/dashboard.php'));
     }
     $error = 'Username atau password salah.';
 }
@@ -28,7 +28,7 @@ $brand = $s['business_name'] ?: 'YAYA Gallery';
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="<?= u("assets/css/style.css") ?>">
 </head>
 <body class="login-body">
 <main class="login-card">

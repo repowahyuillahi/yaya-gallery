@@ -7,16 +7,20 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-define('DB_HOST', '127.0.0.1');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'yaya_gallery');
+// Di hosting, isi lewat file app/config.local.php (lihat DEPLOY.md); tidak ikut repo.
+$DB_HOST = '127.0.0.1';
+$DB_NAME = 'yaya_gallery';
+$DB_USER = 'root';
+$DB_PASS = '';
+if (is_file(__DIR__ . '/config.local.php')) {
+    require __DIR__ . '/config.local.php';
+}
 
 try {
     $pdo = new PDO(
-        'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4',
-        DB_USER,
-        DB_PASS,
+        'mysql:host=' . $DB_HOST . ';dbname=' . $DB_NAME . ';charset=utf8mb4',
+        $DB_USER,
+        $DB_PASS,
         [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -27,9 +31,24 @@ try {
     echo '<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>YAYA Gallery</title></head>'
         . '<body style="font-family:system-ui,sans-serif;background:#FBF7F2;color:#3B3230;max-width:560px;margin:96px auto;line-height:1.6">'
         . '<h1 style="font-size:22px">Database belum siap</h1>'
-        . '<p>Aplikasi tidak bisa terhubung ke MySQL. Pastikan MySQL di XAMPP sudah berjalan, lalu import skema:</p>'
-        . '<p><code>C:\xampp\mysql\bin\mysql.exe -u root &lt; database.sql</code></p></body></html>';
+        . '<p>Aplikasi tidak bisa terhubung ke MySQL. Periksa kredensial di <code>app/config.local.php</code>, lalu import skema dari <code>database/database.sql</code> lewat phpMyAdmin.</p></body></html>';
     exit;
+}
+
+// Jalur dasar URL aplikasi: posisi folder proyek relatif terhadap document root,
+// dihitung dari lokasi file ini sehingga tautan benar dari folder mana pun.
+$docRoot = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+$appRoot = str_replace('\\', '/', dirname(__DIR__));
+define('APP_BASE', ($docRoot !== '' && str_starts_with($appRoot . '/', $docRoot . '/')) ? substr($appRoot, strlen($docRoot)) : '');
+
+function u(string $path): string
+{
+    return APP_BASE . '/' . ltrim($path, '/');
+}
+
+function app_dir(string $path = ''): string
+{
+    return dirname(__DIR__) . ($path !== '' ? '/' . $path : '');
 }
 
 function db(): PDO
@@ -178,7 +197,8 @@ function redirect(string $url): never
     exit;
 }
 
-// Foto disimpan sebagai jalur relatif agar tetap benar saat dipindah folder.
+// Jalur yang disimpan mulai dari "uploads/" sehingga bisa langsung dipakai u()
+// untuk tampilan dan app_dir() untuk akses file.
 function upload_image(string $field, string $subdir, ?string $old = null): ?string
 {
     if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -199,17 +219,17 @@ function upload_image(string $field, string $subdir, ?string $old = null): ?stri
         flash_set('error', 'Format file harus JPG, PNG, atau WebP.');
         return null;
     }
-    $dir = __DIR__ . '/uploads/' . $subdir;
+    $dir = app_dir('uploads/' . $subdir);
     if (!is_dir($dir)) {
         mkdir($dir, 0777, true);
     }
-    $name = $subdir . '/' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $exts[$mime];
-    if (!move_uploaded_file($f['tmp_name'], __DIR__ . '/uploads/' . $name)) {
+    $name = 'uploads/' . $subdir . '/' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $exts[$mime];
+    if (!move_uploaded_file($f['tmp_name'], app_dir($name))) {
         flash_set('error', 'Gagal menyimpan file ke folder uploads.');
         return null;
     }
-    if ($old && is_file(__DIR__ . '/uploads/' . $old)) {
-        unlink(__DIR__ . '/uploads/' . $old);
+    if ($old && is_file(app_dir($old))) {
+        unlink(app_dir($old));
     }
     return $name;
 }
