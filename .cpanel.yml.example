@@ -1,0 +1,9 @@
+---
+# Salin file ini menjadi .cpanel.yml di root repo, lalu sesuaikan:
+#   ganti "user" dengan username cPanel Anda
+#   ganti path tujuan bila memasang di subfolder lain
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/user/public_html/yaya-gallery/
+    - /bin/cp -R * $DEPLOYPATH
+    - /bin/cp .htaccess $DEPLOYPATH 2>/dev/null || true

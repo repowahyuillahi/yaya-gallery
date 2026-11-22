@@ -1,7 +1,8 @@
 # YAYA Gallery: Rental Management System
 
 Aplikasi manajemen rental baju dan keuangan untuk butik YAYA Gallery. Berjalan di XAMPP
-(PHP 8 + MySQL/MariaDB), tanpa framework dan tanpa dependensi komposer.
+(PHP 8 + MySQL/MariaDB), tanpa framework dan tanpa dependensi komposer. Panduan pemasangan
+di hosting cPanel ada di [DEPLOY.md](DEPLOY.md).
 
 ## Menjalankan
 

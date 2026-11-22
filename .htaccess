@@ -1,0 +1,6 @@
+DirectoryIndex index.php
+
+# Kredensial database tidak boleh dibaca dari web
+<Files "config.local.php">
+  Require all denied
+</Files>
