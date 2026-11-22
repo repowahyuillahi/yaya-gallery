@@ -1,0 +1,18 @@
+# Konten upload (foto baju, bukti, logo) tetap lokal; hanya file penjaga ikut repo
+uploads/*
+!uploads/index.php
+!uploads/dresses/
+!uploads/receipts/
+!uploads/logo/
+uploads/dresses/*
+!uploads/dresses/index.php
+uploads/receipts/*
+!uploads/receipts/index.php
+uploads/logo/*
+!uploads/logo/index.php
+
+.zcode-site/
+.zcode-site.json
+*.log
+Thumbs.db
+.DS_Store
