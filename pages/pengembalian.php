@@ -211,7 +211,7 @@ render_flash();
         <?php else: ?>
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>Kode</th><th>Pelanggan</th><th>Diambil</th><th>Jadwal kembali</th><th>Status</th><th></th></tr></thead>
+                    <thead><tr><th>Kode</th><th>Pelanggan</th><th class="hide-sm">Diambil</th><th>Jadwal kembali</th><th>Status</th><th></th></tr></thead>
                     <tbody>
                     <?php foreach ($harusKembali as $r): ?>
                         <?php
@@ -227,7 +227,7 @@ render_flash();
                         <tr>
                             <td class="cell-main"><?= e($r['code']) ?></td>
                             <td><?= e($r['customer']) ?></td>
-                            <td><?= tgl($r['pickup_date']) ?></td>
+                            <td class="hide-sm"><?= tgl($r["pickup_date"]) ?></td>
                             <td><?= tgl($r['return_date']) ?></td>
                             <td><?= $statusHtml ?></td>
                             <td><a class="btn btn-primary btn-sm" href="pengembalian.php?rental=<?= (int)$r['id'] ?>">Proses</a></td>

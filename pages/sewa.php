@@ -56,7 +56,7 @@ render_flash();
         <table>
             <thead>
             <tr>
-                <th>Kode</th><th>Pelanggan</th><th>Sewa</th><th>Diambil</th><th>Kembali</th>
+                <th>Kode</th><th>Pelanggan</th><th class="hide-sm">Sewa</th><th class="hide-sm">Diambil</th><th>Kembali</th>
                 <th>Status</th><th class="num">Total</th><th class="num">Sisa</th><th></th>
             </tr>
             </thead>
@@ -64,10 +64,10 @@ render_flash();
             <?php foreach ($rentals as $r): ?>
                 <?php $sisa = max(0, (float)$r['total'] - (float)$r['paid']); ?>
                 <tr>
-                    <td class="cell-main"><?= e($r['code']) ?></td>
+                    <td class="cell-main table-code"><?= e($r["code"]) ?></td>
                     <td><?= e($r['customer']) ?></td>
-                    <td><?= tgl($r['rent_date']) ?></td>
-                    <td><?= tgl($r['pickup_date']) ?></td>
+                    <td class="hide-sm"><?= tgl($r["rent_date"]) ?></td>
+                    <td class="hide-sm"><?= tgl($r["pickup_date"]) ?></td>
                     <td><?= tgl($r['return_date']) ?></td>
                     <td>
                         <?php if (rental_overdue($r)): ?>

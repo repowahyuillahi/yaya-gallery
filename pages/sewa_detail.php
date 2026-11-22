@@ -101,7 +101,7 @@ render_flash();
     <?php endif; ?>
 </div>
 
-<div class="cols" style="grid-template-columns:minmax(0,2fr) minmax(260px,1fr)">
+<div class="cols split">
     <div class="cols">
         <div class="card">
             <h2 class="section" style="margin-top:0;padding-left:0">Baju yang disewa</h2>

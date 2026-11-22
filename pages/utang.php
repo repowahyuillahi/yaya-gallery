@@ -178,8 +178,8 @@ render_flash();
             <table>
                 <thead>
                 <tr>
-                    <th>Pemberi utang</th><th>Tanggal</th><th>Jatuh tempo</th><th>Status</th>
-                    <th class="num">Nominal</th><th class="num">Dibayar</th><th class="num">Sisa</th><th></th>
+                    <th>Pemberi utang</th><th class="hide-sm">Tanggal</th><th>Jatuh tempo</th><th>Status</th>
+                    <th class="num">Nominal</th><th class="num hide-sm">Dibayar</th><th class="num">Sisa</th><th></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -201,11 +201,11 @@ render_flash();
                             <span class="cell-main"><?= e($d['creditor_name']) ?></span>
                             <span class="cell-sub"><?= e($d['description'] ?: '') ?></span>
                         </td>
-                        <td><?= tgl($d['debt_date']) ?></td>
+                        <td class="hide-sm"><?= tgl($d["debt_date"]) ?></td>
                         <td><?= tgl($d['due_date']) ?></td>
                         <td><?= $stHtml ?></td>
                         <td class="num"><?= rupiah($d['amount']) ?></td>
-                        <td class="num"><?= rupiah($d['paid']) ?></td>
+                        <td class="num hide-sm"><?= rupiah($d["paid"]) ?></td>
                         <td class="num"><?= rupiah(max(0, $sisa)) ?></td>
                         <td>
                             <span class="rowactions">

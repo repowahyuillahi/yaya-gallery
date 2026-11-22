@@ -157,7 +157,8 @@ a:hover { color: var(--rose-deep); }
     box-shadow: inset 0 -2px 0 var(--stitch);
 }
 
-.sidebar .ic { width: 19px; height: 19px; flex: none; }
+/* Ikon berukuran tetap; SVG tanpa dimensi melebar mengikuti kontainer */
+.ic { width: 19px; height: 19px; flex: none; }
 
 .nav-logout {
     display: flex;
@@ -260,6 +261,23 @@ a:hover { color: var(--rose-deep); }
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
 
 .cols { display: grid; gap: 18px; }
+
+/* tanpa ini, tabel lebar di dalam kartu memaksa grid meluber di layar sempit */
+.cols > * { min-width: 0; }
+
+/* Dua kolom asimetris; runtuh satu kolom sebelum konten terjepit */
+.split { grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); }
+
+@media (max-width: 900px) {
+    .split { grid-template-columns: 1fr; }
+}
+
+/* Kolom sekunder tabel disembunyikan di layar sempit agar tidak scroll jauh */
+@media (max-width: 700px) {
+    .hide-sm { display: none; }
+
+    .table-wrap table { min-width: 480px; }
+}
 
 .pagebar {
     display: flex;
@@ -444,6 +462,9 @@ legend { font-size: 13px; font-weight: 700; padding: 0 8px; color: var(--muted);
 .pick input:focus-visible + .pick-body { outline: 2px solid var(--rose); outline-offset: 2px; border-radius: var(--radius-s); }
 
 /* ---------- Tabel ---------- */
+
+/* kode transaksi tidak boleh terpotong per baris */
+.table-code { white-space: nowrap; }
 
 .table-wrap {
     overflow-x: auto;
@@ -782,6 +803,23 @@ tfoot td { font-weight: 700; border-top: 1px solid var(--line); border-bottom: 0
     .pagebar form input, .pagebar form select { flex: 1 1 100%; max-width: none; }
 
     .searchfield { max-width: none; }
+
+    /* spacer tidak berguna saat semua tombol punya baris sendiri */
+    .pagebar .spacer { display: none; }
+
+    /* tautan nav beranda jadi target sentuh utuh */
+    .landing-nav nav { width: 100%; }
+
+    .landing-nav nav a.textlink { display: inline-flex; align-items: center; padding: 12px 8px; }
+
+    .landing .btn-row .btn { flex: 1 1 auto; }
+
+    /* pemilih baju dua kolom dengan foto lebih pendek */
+    .pickgrid { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+
+    .pick img { aspect-ratio: 4 / 3; }
+
+    .pick-noimg { aspect-ratio: 4 / 3; }
 
     .pagebar .btn { flex: 1 1 auto; }
 }

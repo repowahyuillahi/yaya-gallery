@@ -78,7 +78,7 @@ render_flash();
                 <thead>
                 <tr>
                     <th>Kode</th><th>Pelanggan</th><th>Jatuh tempo</th><th>Status</th>
-                    <th class="num">Tagihan</th><th class="num">Dibayar</th><th class="num">Sisa</th><th></th>
+                    <th class="num hide-sm">Tagihan</th><th class="num hide-sm">Dibayar</th><th class="num">Sisa</th><th></th>
                 </tr>
                 </thead>
                 <tbody>
@@ -96,12 +96,12 @@ render_flash();
                     }
                     ?>
                     <tr>
-                        <td class="cell-main"><?= e($p['code']) ?></td>
+                        <td class="cell-main table-code"><?= e($p["code"]) ?></td>
                         <td><?= e($p['customer']) ?></td>
                         <td><?= tgl($due) ?></td>
                         <td><?= $stHtml ?></td>
-                        <td class="num"><?= rupiah($p['total']) ?></td>
-                        <td class="num"><?= rupiah($p['paid']) ?></td>
+                        <td class="num hide-sm"><?= rupiah($p["total"]) ?></td>
+                        <td class="num hide-sm"><?= rupiah($p["paid"]) ?></td>
                         <td class="num"><?= rupiah($sisa) ?></td>
                         <td>
                             <span class="rowactions">

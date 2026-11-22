@@ -203,7 +203,7 @@ render_flash();
     <?php else: ?>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Nama</th><th>WhatsApp</th><th class="num">Transaksi</th><th class="num">Total tagihan</th><th class="num">Utang pelanggan</th><th></th></tr></thead>
+                <thead><tr><th>Nama</th><th>WhatsApp</th><th class="num">Transaksi</th><th class="num hide-sm">Total tagihan</th><th class="num">Utang pelanggan</th><th></th></tr></thead>
                 <tbody>
                 <?php foreach ($customers as $c): ?>
                     <tr>
@@ -220,7 +220,7 @@ render_flash();
                             <?php endif; ?>
                         </td>
                         <td class="num"><?= angka($c['jml_sewa']) ?></td>
-                        <td class="num"><?= rupiah($c['total_tagihan']) ?></td>
+                        <td class="num hide-sm"><?= rupiah($c["total_tagihan"]) ?></td>
                         <td class="num"><?= rupiah($c['total_utang']) ?></td>
                         <td>
                             <span class="rowactions">

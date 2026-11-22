@@ -114,13 +114,13 @@ render_flash();
             <?php else: ?>
                 <div class="table-wrap">
                     <table>
-                        <thead><tr><th>Kode</th><th>Pelanggan</th><th>Tanggal sewa</th><th>Status</th><th class="num">Total</th><th></th></tr></thead>
+                        <thead><tr><th>Kode</th><th>Pelanggan</th><th class="hide-sm">Tanggal sewa</th><th>Status</th><th class="num">Total</th><th></th></tr></thead>
                         <tbody>
                         <?php foreach ($recent as $r): ?>
                             <tr>
-                                <td class="cell-main"><?= e($r['code']) ?></td>
+                                <td class="cell-main table-code"><?= e($r["code"]) ?></td>
                                 <td><?= e($r['customer']) ?></td>
-                                <td><?= tgl($r['rent_date']) ?></td>
+                                <td class="hide-sm"><?= tgl($r["rent_date"]) ?></td>
                                 <td><?= badge($r['status']) ?></td>
                                 <td class="num"><?= rupiah($r['total']) ?></td>
                                 <td><a class="btn btn-ghost btn-sm" href="sewa_detail.php?id=<?= (int)$r['id'] ?>">Detail</a></td>

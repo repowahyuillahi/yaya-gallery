@@ -144,7 +144,7 @@ render_flash();
         <div class="table-wrap">
             <table>
                 <thead>
-                <tr><th>Tanggal</th><th>Jenis</th><th>Keterangan</th><th>Transaksi</th><th>Metode</th><th class="num">Jumlah</th><?php if (can_delete()): ?><th></th><?php endif; ?></tr>
+                <tr><th>Tanggal</th><th>Jenis</th><th>Keterangan</th><th>Transaksi</th><th class="hide-sm">Metode</th><th class="num">Jumlah</th><?php if (can_delete()): ?><th></th><?php endif; ?></tr>
                 </thead>
                 <tbody>
                 <?php foreach ($rows as $r): ?>
@@ -153,7 +153,7 @@ render_flash();
                         <td><?= badge($r['category']) ?></td>
                         <td><?= e($r['description']) ?></td>
                         <td><?= $r['code'] ? '<a class="textlink" href="sewa_detail.php?id=' . (int)$r['rental_id'] . '">' . e($r['code']) . '</a><span class="cell-sub">' . e($r['customer']) . '</span>' : '-' ?></td>
-                        <td><?= badge($r['method']) ?></td>
+                        <td class="hide-sm"><?= badge($r["method"]) ?></td>
                         <td class="num"><?= rupiah($r['amount']) ?></td>
                         <?php if (can_delete()): ?>
                             <td>
