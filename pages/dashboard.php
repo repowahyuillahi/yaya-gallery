@@ -30,7 +30,7 @@ $piutang = qone(
 $utang = qone(
     "SELECT COALESCE(SUM(GREATEST(d.amount - COALESCE(e.paid,0),0)),0) sisa, COUNT(*) jml
      FROM debts d
-     LEFT JOIN (SELECT utang_id, SUM(amount) paid FROM expenses WHERE utang_id IS NOT NULL GROUP BY utang_id) e ON e.utang_id = d.id
+     LEFT JOIN (SELECT utang_id, SUM(amount) paid FROM expenses WHERE utang_id IS NOT NULL AND category = 'pembayaran_utang' GROUP BY utang_id) e ON e.utang_id = d.id
      WHERE d.amount > COALESCE(e.paid,0)"
 );
 

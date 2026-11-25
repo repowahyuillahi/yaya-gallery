@@ -36,18 +36,39 @@ if ($rentalId) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'proses') {
     csrf_check();
     $items = qall('SELECT ri.id, ri.dress_id, d.name FROM rental_items ri JOIN dresses d ON d.id = ri.dress_id WHERE ri.rental_id = ?', [$rentalId]);
-    $tglKembali = post_date('tanggal_kembali') ?: date('Y-m-d');
+    $tglKembali = post_date('tanggal_kembali');
     $denda = post_amount('denda');
     $kerusakan = post_amount('kerusakan');
 
+    $err = [];
+    if ($tglKembali === null) {
+        $err[] = 'Tanggal dikembalikan tidak valid.';
+    }
+    if ($denda === null) {
+        $err[] = 'Nominal denda tidak valid.';
+    }
+    if ($kerusakan === null) {
+        $err[] = 'Nominal biaya kerusakan tidak valid.';
+    }
     $byItem = (array)($_POST['kondisi'] ?? []);
     $catatan = (array)($_POST['damage_note'] ?? []);
+    foreach ($items as $it) {
+        if (!in_array($byItem[$it['id']] ?? '', ['baik', 'rusak', 'hilang'], true)) {
+            $err[] = 'Kondisi baju ' . $it['name'] . ' belum dipilih.';
+        }
+    }
+    if ($err) {
+        flash_set('error', implode(' ', $err));
+        redirect('pengembalian.php?rental=' . $rentalId);
+    }
+
+    $tglKembali = $tglKembali ?: date('Y-m-d');
     db()->beginTransaction();
     try {
         $adaRusak = false;
         $adaHilang = false;
         foreach ($items as $it) {
-            $kondisi = in_array($byItem[$it['id']] ?? '', ['baik', 'rusak', 'hilang'], true) ? $byItem[$it['id']] : 'baik';
+            $kondisi = $byItem[$it['id']];
             $note = trim((string)($catatan[$it['id']] ?? ''));
             q('UPDATE rental_items SET condition_on_return = :k, damage_note = :n WHERE id = :id', [
                 'k' => $kondisi, 'n' => $note ?: null, 'id' => $it['id'],
@@ -62,15 +83,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'proses') 
                 $adaHilang = true;
             }
         }
-        q('UPDATE rentals SET status = "dikembalikan", actual_return_date = :t, late_fee = :lf, damage_fee = :df, deposit_used = :du WHERE id = :id', [
-            't' => $tglKembali, 'lf' => $denda, 'df' => $kerusakan,
-            'du' => post('pakai_deposit') === '1' ? 1 : 0, 'id' => $rentalId,
+        q('UPDATE rentals SET status = "dikembalikan", actual_return_date = :t, late_fee = :lf, damage_fee = :df WHERE id = :id', [
+            't' => $tglKembali, 'lf' => $denda, 'df' => $kerusakan, 'id' => $rentalId,
         ]);
         rental_refresh_totals($rentalId);
 
-        $sisa = (float)qval('SELECT total FROM rentals WHERE id = ?', [$rentalId]) - rental_paid($rentalId);
+        // Deposit hanya dipakai bila benar ada sisa tagihan setelah denda/kerusakan.
+        $totalBaru = (float)qval('SELECT total FROM rentals WHERE id = ?', [$rentalId]);
+        $sisa = $totalBaru - rental_paid($rentalId);
         $deposit = (float)$rental['deposit'];
-        if (post('pakai_deposit') === '1' && $deposit > 0 && $sisa > 0) {
+        $pakaiDeposit = post('pakai_deposit') === '1' && $deposit > 0 && $sisa > 0;
+        if ($pakaiDeposit) {
             $pakai = min($deposit, $sisa);
             q(
                 'INSERT INTO incomes (date, category, rental_id, customer_id, description, amount, method)
@@ -82,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'proses') 
             );
             $sisa -= $pakai;
         }
+        q('UPDATE rentals SET deposit_used = :du WHERE id = :id', ['du' => $pakaiDeposit ? 1 : 0, 'id' => $rentalId]);
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();
@@ -165,7 +189,7 @@ render_flash();
                                 </select>
                             </td>
                             <td>
-                                <input type="text" name="damage_note[<?= (int)$it['id'] ?>]" placeholder="mis. robek di lengan">
+                                <input type="text" name="damage_note[<?= (int)$it['id'] ?>]" aria-label="Catatan kerusakan <?= e($it['name']) ?>" placeholder="mis. robek di lengan">
                             </td>
                         </tr>
                     <?php endforeach; ?>

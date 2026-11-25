@@ -5,18 +5,29 @@ require_admin();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'simpan') {
     csrf_check();
-    $old = (string)qval('SELECT logo FROM settings WHERE id = 1');
-    $logo = upload_image('logo', 'logo', $old ?: null) ?? $old;
-    q('UPDATE settings SET business_name = :bn, address = :ad, phone = :ph, late_fee_per_day = :lf,
-       default_deposit = :dd, invoice_notes = :in, logo = :lg WHERE id = 1', [
-        'bn' => post('business_name') ?: 'YAYA Gallery',
-        'ad' => post('address') ?: null,
-        'ph' => post('phone') ?: null,
-        'lf' => post_amount('late_fee_per_day'),
-        'dd' => post_amount('default_deposit'),
-        'in' => post('invoice_notes') ?: null,
-        'lg' => $logo,
-    ]);
+    $lateFee = post_amount('late_fee_per_day');
+    $defaultDeposit = post_amount('default_deposit');
+    if ($lateFee === null || $defaultDeposit === null) {
+        flash_set('error', 'Nominal denda atau deposit default tidak valid.');
+        redirect('pengaturan.php');
+    }
+    try {
+        $old = (string)qval('SELECT logo FROM settings WHERE id = 1');
+        $logo = upload_image('logo', 'logo', $old ?: null) ?? $old;
+        q('UPDATE settings SET business_name = :bn, address = :ad, phone = :ph, late_fee_per_day = :lf,
+           default_deposit = :dd, invoice_notes = :in, logo = :lg WHERE id = 1', [
+            'bn' => post('business_name') ?: 'YAYA Gallery',
+            'ad' => post('address') ?: null,
+            'ph' => post('phone') ?: null,
+            'lf' => $lateFee,
+            'dd' => $defaultDeposit,
+            'in' => post('invoice_notes') ?: null,
+            'lg' => $logo,
+        ]);
+    } catch (RuntimeException $e) {
+        flash_set('error', $e->getMessage());
+        redirect('pengaturan.php');
+    }
     flash_set('ok', 'Pengaturan tersimpan.');
     redirect('pengaturan.php');
 }
@@ -56,7 +67,7 @@ render_flash();
             <div class="span-all">
                 <label for="logoInput">Logo bisnis</label>
                 <?php if (!empty($s['logo'])): ?>
-                    <img src="<?= u($s["logo"]) ?>" alt="Logo bisnis" width="64" height="64"
+                    <img src="<?= file_url($s["logo"]) ?>" alt="Logo bisnis" width="64" height="64"
                          style="border-radius:var(--radius-s);object-fit:cover;margin-bottom:8px;display:block">
                 <?php endif; ?>
                 <input type="file" id="logoInput" name="logo" accept="image/jpeg,image/png,image/webp">

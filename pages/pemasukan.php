@@ -22,6 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'hapus') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'lainnya') {
     csrf_check();
     $amount = post_amount('jumlah');
+    if ($amount === null) {
+        flash_set('error', 'Nominal tidak valid.');
+        redirect('pemasukan.php');
+    }
     if ($amount <= 0) {
         flash_set('error', 'Nominal harus lebih dari nol.');
         redirect('pemasukan.php');

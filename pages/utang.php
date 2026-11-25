@@ -13,6 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'bayar') {
         redirect('utang.php');
     }
     $amount = post_amount('jumlah');
+    if ($amount === null) {
+        flash_set('error', 'Nominal pembayaran tidak valid.');
+        redirect('utang.php');
+    }
     if ($amount <= 0) {
         flash_set('error', 'Nominal pembayaran harus lebih dari nol.');
         redirect('utang.php');
@@ -55,8 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'simpan') 
     csrf_check();
     $creditor = post('creditor');
     $amount = post_amount('amount');
-    if ($creditor === '' || $amount <= 0) {
-        flash_set('error', 'Nama pemberi utang dan nominal utang wajib diisi.');
+    if ($creditor === '' || $amount === null || $amount <= 0) {
+        flash_set('error', 'Nama pemberi utang dan nominal utang wajib diisi dengan benar.');
         redirect($id ? 'utang.php?action=edit&id=' . $id : 'utang.php?action=baru');
     }
     $data = [
@@ -91,7 +95,7 @@ $today = date('Y-m-d');
 $debts = qall(
     "SELECT d.*, COALESCE(e.paid,0) AS paid
      FROM debts d
-     LEFT JOIN (SELECT utang_id, SUM(amount) paid FROM expenses WHERE utang_id IS NOT NULL GROUP BY utang_id) e ON e.utang_id = d.id
+     LEFT JOIN (SELECT utang_id, SUM(amount) paid FROM expenses WHERE utang_id IS NOT NULL AND category = 'pembayaran_utang' GROUP BY utang_id) e ON e.utang_id = d.id
      ORDER BY d.debt_date DESC"
 );
 $totalSisa = 0;
@@ -210,34 +214,7 @@ render_flash();
                         <td>
                             <span class="rowactions">
                                 <?php if (!$lunas): ?>
-                                    <details class="bayar-details">
-                                        <summary class="btn btn-primary btn-sm" style="list-style:none">Bayar</summary>
-                                        <form method="post" class="card bayar-form" style="padding:14px;margin-top:8px;min-width:240px">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="do" value="bayar">
-                                            <input type="hidden" name="debt_id" value="<?= (int)$d['id'] ?>">
-                                            <div>
-                                                <label>Jumlah (Rp)</label>
-                                                <input type="text" name="jumlah" inputmode="numeric" value="<?= angka($sisa) ?>">
-                                            </div>
-                                            <div style="margin-top:8px">
-                                                <label>Tanggal</label>
-                                                <input type="date" name="tanggal" value="<?= date('Y-m-d') ?>">
-                                            </div>
-                                            <div style="margin-top:8px">
-                                                <label>Metode</label>
-                                                <select name="method">
-                                                    <option value="cash">Tunai</option>
-                                                    <option value="transfer">Transfer</option>
-                                                    <option value="qris">QRIS</option>
-                                                    <option value="lainnya">Lainnya</option>
-                                                </select>
-                                            </div>
-                                            <div class="form-actions" style="margin-top:10px">
-                                                <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
-                                            </div>
-                                        </form>
-                                    </details>
+                                    <button type="button" class="btn btn-primary btn-sm" data-bayar data-dialog="bayarDialog" data-id="<?= (int)$d['id'] ?>" data-sisa="<?= angka($sisa) ?>">Bayar</button>
                                 <?php endif; ?>
                                 <a class="btn btn-ghost btn-sm" href="utang.php?action=edit&id=<?= (int)$d['id'] ?>">Edit</a>
                                 <?php if (can_delete()): ?>
@@ -258,5 +235,35 @@ render_flash();
         <p class="hint">Pembayaran utang otomatis tercatat sebagai pengeluaran dengan kategori Pembayaran utang.</p>
     <?php endif; ?>
 <?php endif; ?>
+
+<dialog id="bayarDialog" class="modal">
+    <form method="post">
+        <?= csrf_field() ?>
+        <input type="hidden" name="do" value="bayar">
+        <input type="hidden" name="debt_id" data-field="id" value="">
+        <h2>Bayar utang</h2>
+        <div>
+            <label for="bayarJumlah">Jumlah (Rp)</label>
+            <input type="text" id="bayarJumlah" name="jumlah" data-field="jumlah" inputmode="numeric">
+        </div>
+        <div style="margin-top:10px">
+            <label for="bayarTanggal">Tanggal</label>
+            <input type="date" id="bayarTanggal" name="tanggal" value="<?= date('Y-m-d') ?>">
+        </div>
+        <div style="margin-top:10px">
+            <label for="bayarMethod">Metode</label>
+            <select id="bayarMethod" name="method">
+                <option value="cash">Tunai</option>
+                <option value="transfer">Transfer</option>
+                <option value="qris">QRIS</option>
+                <option value="lainnya">Lainnya</option>
+            </select>
+        </div>
+        <div class="form-actions" style="margin-top:14px">
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <button type="button" class="btn btn-ghost" data-close>Batal</button>
+        </div>
+    </form>
+</dialog>
 <?php
 page_end();

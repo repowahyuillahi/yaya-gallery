@@ -1,5 +1,7 @@
 -- Data contoh YAYA Gallery (opsional): untuk melihat aplikasi berjalan dengan isi.
--- Hapus kapan saja lewat aplikasi, atau reset total dengan drop database lalu import ulang.
+-- Hanya aman di database yang benar-benar kosong (mengacu ID 1..4). Baju/pelanggan
+-- yang sudah bertransaksi tidak bisa dihapus lewat aplikasi; reset total dengan drop
+-- database lalu import ulang.
 -- Import SETELAH database.sql: C:\xampp\mysql\bin\mysql.exe -u root yaya_gallery < database_contoh.sql
 USE yaya_gallery;
 

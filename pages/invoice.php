@@ -75,26 +75,27 @@ $brand = $s['business_name'] ?: 'YAYA Gallery';
 
     <div class="table-wrap">
         <table class="items-table">
-            <thead><tr><th>Baju</th><th>Kode</th><th>Ukuran</th><th class="num">Harga</th></tr></thead>
+            <thead><tr><th>Baju</th><th class="num">Harga</th></tr></thead>
             <tbody>
             <?php foreach ($items as $it): ?>
                 <tr>
-                    <td><?= e($it['name']) ?></td>
-                    <td><?= e($it['code']) ?></td>
-                    <td><?= e($it['size'] ?: '-') ?></td>
+                    <td>
+                        <span class="cell-main"><?= e($it['name']) ?></span>
+                        <span class="cell-sub"><?= e($it['code']) ?> · <?= e($it['size'] ?: '-') ?></span>
+                    </td>
                     <td class="num"><?= rupiah($it['price']) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
             <tfoot>
-            <tr><td colspan="3">Subtotal</td><td class="num"><?= rupiah($rental['subtotal']) ?></td></tr>
-            <?php if ($rental['discount'] > 0): ?><tr><td colspan="3">Diskon</td><td class="num">- <?= rupiah($rental['discount']) ?></td></tr><?php endif; ?>
-            <?php if ($rental['extra_fee'] > 0): ?><tr><td colspan="3">Ongkos tambahan</td><td class="num"><?= rupiah($rental['extra_fee']) ?></td></tr><?php endif; ?>
-            <?php if ($rental['late_fee'] > 0): ?><tr><td colspan="3">Denda keterlambatan</td><td class="num"><?= rupiah($rental['late_fee']) ?></td></tr><?php endif; ?>
-            <?php if ($rental['damage_fee'] > 0): ?><tr><td colspan="3">Biaya kerusakan</td><td class="num"><?= rupiah($rental['damage_fee']) ?></td></tr><?php endif; ?>
-            <tr><td colspan="3">Total</td><td class="num"><?= rupiah($rental['total']) ?></td></tr>
-            <tr><td colspan="3">Sudah dibayar</td><td class="num"><?= rupiah($paid) ?></td></tr>
-            <tr><td colspan="3">Sisa</td><td class="num"><?= rupiah(max(0, $sisa)) ?></td></tr>
+            <tr><td>Subtotal</td><td class="num"><?= rupiah($rental['subtotal']) ?></td></tr>
+            <?php if ($rental['discount'] > 0): ?><tr><td>Diskon</td><td class="num">- <?= rupiah($rental['discount']) ?></td></tr><?php endif; ?>
+            <?php if ($rental['extra_fee'] > 0): ?><tr><td>Ongkos tambahan</td><td class="num"><?= rupiah($rental['extra_fee']) ?></td></tr><?php endif; ?>
+            <?php if ($rental['late_fee'] > 0): ?><tr><td>Denda keterlambatan</td><td class="num"><?= rupiah($rental['late_fee']) ?></td></tr><?php endif; ?>
+            <?php if ($rental['damage_fee'] > 0): ?><tr><td>Biaya kerusakan</td><td class="num"><?= rupiah($rental['damage_fee']) ?></td></tr><?php endif; ?>
+            <tr><td>Total</td><td class="num"><?= rupiah($rental['total']) ?></td></tr>
+            <tr><td>Sudah dibayar</td><td class="num"><?= rupiah($paid) ?></td></tr>
+            <tr><td>Sisa</td><td class="num"><?= rupiah(max(0, $sisa)) ?></td></tr>
             </tfoot>
         </table>
     </div>

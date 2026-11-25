@@ -38,13 +38,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'simpan')) {
         flash_set('error', 'Nama baju wajib diisi.');
         redirect($id ? 'koleksi.php?action=edit&id=' . $id : 'koleksi.php?action=baru');
     }
+    $hargaSewa = post_amount('harga_sewa');
+    $hargaBeli = post_amount('harga_beli');
+    if ($hargaSewa === null || $hargaBeli === null) {
+        flash_set('error', 'Nominal harga sewa atau harga beli tidak valid.');
+        redirect($id ? 'koleksi.php?action=edit&id=' . $id : 'koleksi.php?action=baru');
+    }
     $data = [
         'name'            => $nama,
         'category'        => post_enum('kategori', $kategoriList, 'dress'),
         'size'            => post('size') ?: null,
         'color'           => post('warna') ?: null,
-        'rent_price'      => post_amount('harga_sewa'),
-        'buy_price'       => post_amount('harga_beli'),
+        'rent_price'      => $hargaSewa,
+        'buy_price'       => $hargaBeli,
         'purchase_date'   => post_date('tanggal_beli'),
         'item_condition'  => post_enum('kondisi', ['baik', 'perlu_perbaikan', 'rusak'], 'baik'),
         'status'          => post_enum('status', ['tersedia', 'dicuci', 'perbaikan', 'tidak_tersedia'], 'tersedia'),
@@ -54,23 +60,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'simpan')) {
     if (in_array($statusSekarang, ['booking', 'disewa'], true)) {
         $data['status'] = $statusSekarang; // status transaksi hanya berubah lewat transaksi
     }
-    if ($id) {
-        $old = (string)qval('SELECT photo FROM dresses WHERE id = ?', [$id]);
-        $data['photo'] = upload_image('foto', 'dresses', $old ?: null) ?? $old;
-        q('UPDATE dresses SET name=:name, category=:category, size=:size, color=:color, rent_price=:rent_price,
-           buy_price=:buy_price, purchase_date=:purchase_date, item_condition=:item_condition, status=:status,
-           notes=:notes, photo=:photo WHERE id=:id', $data + ['id' => $id]);
-        flash_set('ok', 'Baju ' . $nama . ' diperbarui.');
-    } else {
-        $fotoBaru = upload_image('foto', 'dresses');
-        if ($fotoBaru) {
-            $data['photo'] = $fotoBaru;
+    try {
+        if ($id) {
+            $old = (string)qval('SELECT photo FROM dresses WHERE id = ?', [$id]);
+            $data['photo'] = upload_image('foto', 'dresses', $old ?: null) ?? $old;
+            q('UPDATE dresses SET name=:name, category=:category, size=:size, color=:color, rent_price=:rent_price,
+               buy_price=:buy_price, purchase_date=:purchase_date, item_condition=:item_condition, status=:status,
+               notes=:notes, photo=:photo WHERE id=:id', $data + ['id' => $id]);
+            flash_set('ok', 'Baju ' . $nama . ' diperbarui.');
+        } else {
+            $fotoBaru = upload_image('foto', 'dresses');
+            if ($fotoBaru) {
+                $data['photo'] = $fotoBaru;
+            }
+            $data['code'] = next_code('dresses', 'YG-');
+            $cols = implode(', ', array_keys($data));
+            $ph = implode(', ', array_map(fn($c) => ":$c", array_keys($data)));
+            q("INSERT INTO dresses ($cols) VALUES ($ph)", $data);
+            flash_set('ok', 'Baju tersimpan dengan kode ' . $data['code'] . '.');
         }
-        $data['code'] = next_code('dresses', 'YG-');
-        $cols = implode(', ', array_keys($data));
-        $ph = implode(', ', array_map(fn($c) => ":$c", array_keys($data)));
-        q("INSERT INTO dresses ($cols) VALUES ($ph)", $data);
-        flash_set('ok', 'Baju tersimpan dengan kode ' . $data['code'] . '.');
+    } catch (RuntimeException $e) {
+        flash_set('error', $e->getMessage());
+        redirect($id ? 'koleksi.php?action=edit&id=' . $id : 'koleksi.php?action=baru');
     }
     redirect('koleksi.php');
 }
@@ -176,7 +187,7 @@ render_flash();
                 <div class="span-all">
                     <label for="photoInput">Foto baju</label>
                     <?php if (!empty($edit['photo'])): ?>
-                        <img src="<?= u($edit["photo"]) ?>" alt="Foto <?= e($edit['name']) ?>" width="120" height="120"
+                        <img src="<?= file_url($edit["photo"]) ?>" alt="Foto <?= e($edit['name']) ?>" width="120" height="120"
                              style="border-radius:var(--radius-s);object-fit:cover;margin-bottom:8px;display:block">
                     <?php endif; ?>
                     <img id="photoPreview" src="" alt="" width="120" height="120" hidden
@@ -229,7 +240,7 @@ render_flash();
                 <article class="dresscard">
                     <div class="photo">
                         <?php if ($d['photo']): ?>
-                            <img src="<?= u($d["photo"]) ?>" alt="Foto <?= e($d['name']) ?>" width="400" height="300" loading="lazy">
+                            <img src="<?= file_url($d["photo"]) ?>" alt="Foto <?= e($d['name']) ?>" width="400" height="300" loading="lazy">
                         <?php else: ?>
                             <div class="pick-noimg">Belum ada foto</div>
                         <?php endif; ?>

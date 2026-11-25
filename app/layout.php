@@ -75,7 +75,7 @@ function empty_state(string $msg, ?string $ctaLabel = null, ?string $ctaHref = n
 function nav_link(string $href, string $file, string $iconName, string $label, string $active): string
 {
     $isActive = $active === $file;
-    return '<a href="' . e($href) . '"' . ($isActive ? ' aria-current="page"' : '') . '>'
+    return '<a href="' . e(u($href)) . '"' . ($isActive ? ' aria-current="page"' : '') . '>'
         . icon($iconName) . '<span>' . e($label) . '</span>'
         . '</a>';
 }
@@ -126,7 +126,7 @@ function page_start(string $title, string $active): void
     <aside class="sidebar" id="sidebar" aria-label="Menu utama">
         <p class="brand">
             <?php if (!empty($s['logo'])): ?>
-                <img src="<?= u($s['logo']) ?>" alt="" width="34" height="34">
+                <img src="<?= file_url($s['logo']) ?>" alt="" width="34" height="34">
             <?php endif; ?>
             <span class="brand-name"><?= e($brand) ?></span>
         </p>
@@ -139,7 +139,10 @@ function page_start(string $title, string $active): void
                 <?php endforeach; ?>
             <?php endforeach; ?>
         </nav>
-        <a class="nav-logout" href="<?= u("logout.php") ?>"><?= icon('logout') ?><span>Keluar</span></a>
+        <form method="post" action="<?= u("logout.php") ?>" class="nav-logout-form">
+            <?= csrf_field() ?>
+            <button type="submit" class="nav-logout"><?= icon('logout') ?><span>Keluar</span></button>
+        </form>
     </aside>
     <div class="overlay" id="overlay" hidden></div>
     <div class="maincol">

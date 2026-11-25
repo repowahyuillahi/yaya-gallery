@@ -120,11 +120,27 @@ function tgl(?string $d): string
     return date('j', $t) . ' ' . bulan_indo((int)date('n', $t)) . ' ' . date('Y', $t);
 }
 
-// Pengguna mengetik nominal dengan atau tanpa titik/koma, keduanya diterima.
-function parse_amount(mixed $v): float
+// Nominal uang: terima digit dengan pemisah ribuan (titik/spasi) dan desimal (koma).
+// Tolak tanda minus, huruf, dan format lain supaya salah ketik tidak mengubah laporan.
+function parse_amount(mixed $v): ?float
 {
-    $v = preg_replace('/[^0-9]/', '', (string)$v);
-    return $v === '' ? 0.0 : (float)$v;
+    $s = trim((string)$v);
+    if ($s === '') {
+        return 0.0;
+    }
+    if (!preg_match('/^[0-9][0-9 .]*([,.][0-9]+)?$/', $s)) {
+        return null;
+    }
+    $s = str_replace(' ', '', $s);
+    if (str_contains($s, ',') && str_contains($s, '.')) {
+        $s = str_replace('.', '', $s);   // titik = pemisah ribuan
+        $s = str_replace(',', '.', $s);  // koma = desimal
+    } elseif (str_contains($s, ',')) {
+        $s = str_replace(',', '.', $s);
+    } else {
+        $s = str_replace('.', '', $s);   // hanya titik = pemisah ribuan
+    }
+    return (float)$s;
 }
 
 function post(string $k, string $default = ''): string
@@ -132,7 +148,8 @@ function post(string $k, string $default = ''): string
     return isset($_POST[$k]) ? trim((string)$_POST[$k]) : $default;
 }
 
-function post_amount(string $k): float
+// Mengembalikan null bila input nominal tidak valid; pemanggil wajib memeriksanya.
+function post_amount(string $k): ?float
 {
     return parse_amount($_POST[$k] ?? '0');
 }
@@ -143,8 +160,10 @@ function post_date(string $k): ?string
     if ($v === '') {
         return null;
     }
-    $t = strtotime($v);
-    return $t ? date('Y-m-d', $t) : null;
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+        return null;
+    }
+    return $v;
 }
 
 function post_int(string $k): int
@@ -198,7 +217,8 @@ function redirect(string $url): never
 }
 
 // Jalur yang disimpan mulai dari "uploads/" sehingga bisa langsung dipakai u()
-// untuk tampilan dan app_dir() untuk akses file.
+// untuk tampilan dan app_dir() untuk akses file. Melempar RuntimeException saat
+// upload gagal supaya pemanggil tidak menyimpan data dengan pesan sukses.
 function upload_image(string $field, string $subdir, ?string $old = null): ?string
 {
     if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -206,18 +226,15 @@ function upload_image(string $field, string $subdir, ?string $old = null): ?stri
     }
     $f = $_FILES[$field];
     if ($f['error'] !== UPLOAD_ERR_OK) {
-        flash_set('error', 'Upload gagal (kode ' . $f['error'] . '), coba file lain.');
-        return null;
+        throw new RuntimeException('Upload gagal (kode ' . $f['error'] . '), coba file lain.');
     }
     if ($f['size'] > 3 * 1024 * 1024) {
-        flash_set('error', 'Ukuran file maksimal 3 MB.');
-        return null;
+        throw new RuntimeException('Ukuran file maksimal 3 MB.');
     }
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
     $exts = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
     if (!isset($exts[$mime])) {
-        flash_set('error', 'Format file harus JPG, PNG, atau WebP.');
-        return null;
+        throw new RuntimeException('Format file harus JPG, PNG, atau WebP.');
     }
     $dir = app_dir('uploads/' . $subdir);
     if (!is_dir($dir)) {
@@ -225,8 +242,7 @@ function upload_image(string $field, string $subdir, ?string $old = null): ?stri
     }
     $name = 'uploads/' . $subdir . '/' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $exts[$mime];
     if (!move_uploaded_file($f['tmp_name'], app_dir($name))) {
-        flash_set('error', 'Gagal menyimpan file ke folder uploads.');
-        return null;
+        throw new RuntimeException('Gagal menyimpan file ke folder uploads.');
     }
     if ($old && is_file(app_dir($old))) {
         unlink(app_dir($old));
@@ -234,9 +250,33 @@ function upload_image(string $field, string $subdir, ?string $old = null): ?stri
     return $name;
 }
 
+// URL aman untuk menampilkan file upload lewat file.php (butuh login), bukan akses langsung.
+function file_url(string $path): string
+{
+    return u('file.php?f=' . rawurlencode($path));
+}
+
+// Netralkan nilai yang bisa ditafsirkan Excel/LibreOffice sebagai formula.
+function csv_safe(mixed $v): string
+{
+    $s = (string)$v;
+    if ($s !== '' && strpbrk($s[0], "=+-@\t\r")) {
+        $s = "'" . $s;
+    }
+    return $s;
+}
+
 function next_code(string $table, string $prefix): string
 {
-    $next = ((int)qval("SELECT MAX(id) FROM `$table`")) + 1;
+    // Pakai AUTO_INCREMENT berikutnya, bukan MAX(id)+1, supaya kode tidak dipakai
+    // ulang setelah baris terakhir dihapus dan tidak bertabrakan saat submit bersamaan.
+    $next = (int)qval(
+        'SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?',
+        [$table]
+    );
+    if ($next < 1) {
+        $next = ((int)qval("SELECT MAX(id) FROM `$table`")) + 1;
+    }
     return $prefix . str_pad((string)$next, 4, '0', STR_PAD_LEFT);
 }
 
@@ -256,7 +296,9 @@ function rental_paid(int $rental_id): float
 
 function debt_paid(int $debt_id): float
 {
-    return (float)qval('SELECT COALESCE(SUM(amount),0) FROM expenses WHERE utang_id = ?', [$debt_id]);
+    // Hanya pembayaran utang yang mengurangi saldo; kategori lain yang kebetulan
+    // tertaut utang_id tidak boleh ikut dihitung.
+    return (float)qval('SELECT COALESCE(SUM(amount),0) FROM expenses WHERE utang_id = ? AND category = "pembayaran_utang"', [$debt_id]);
 }
 
 // Booking berubah disewa saat tanggal ambil tiba; status baju mengikuti transaksinya.

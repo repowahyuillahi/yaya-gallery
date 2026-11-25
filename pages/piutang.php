@@ -7,13 +7,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'bayar') {
     csrf_check();
     $rid = post_int('rental_id');
     $amount = post_amount('jumlah');
-    $r = qone("SELECT r.id, r.code, r.customer_id, r.status FROM rentals r WHERE r.id = ?", [$rid]);
+    $r = qone("SELECT r.id, r.code, r.customer_id, r.status, r.total FROM rentals r WHERE r.id = ?", [$rid]);
     if (!$r || $r['status'] === 'batal') {
         flash_set('error', 'Transaksi tidak ditemukan atau sudah dibatalkan.');
         redirect('piutang.php');
     }
+    if ($amount === null) {
+        flash_set('error', 'Nominal pembayaran tidak valid.');
+        redirect('piutang.php');
+    }
     if ($amount <= 0) {
         flash_set('error', 'Nominal pembayaran harus lebih dari nol.');
+        redirect('piutang.php');
+    }
+    $paid = rental_paid($rid);
+    $sisa = (float)$r['total'] - $paid;
+    if ($sisa <= 0) {
+        flash_set('error', 'Tagihan sudah lunas.');
+        redirect('piutang.php');
+    }
+    if ($amount > $sisa) {
+        flash_set('error', 'Nominal melebihi sisa tagihan (' . rupiah($sisa) . ').');
         redirect('piutang.php');
     }
     q(
@@ -105,34 +119,7 @@ render_flash();
                         <td class="num"><?= rupiah($sisa) ?></td>
                         <td>
                             <span class="rowactions">
-                                <details class="bayar-details">
-                                    <summary class="btn btn-primary btn-sm" style="list-style:none">Bayar</summary>
-                                    <form method="post" class="card bayar-form" style="padding:14px;margin-top:8px;min-width:240px">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="do" value="bayar">
-                                        <input type="hidden" name="rental_id" value="<?= (int)$p['id'] ?>">
-                                        <div>
-                                            <label>Jumlah (Rp)</label>
-                                            <input type="text" name="jumlah" inputmode="numeric" value="<?= angka($sisa) ?>">
-                                        </div>
-                                        <div style="margin-top:8px">
-                                            <label>Tanggal</label>
-                                            <input type="date" name="tanggal" value="<?= date('Y-m-d') ?>">
-                                        </div>
-                                        <div style="margin-top:8px">
-                                            <label>Metode</label>
-                                            <select name="method">
-                                                <option value="cash">Tunai</option>
-                                                <option value="transfer">Transfer</option>
-                                                <option value="qris">QRIS</option>
-                                                <option value="lainnya">Lainnya</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-actions" style="margin-top:10px">
-                                            <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
-                                        </div>
-                                    </form>
-                                </details>
+                                <button type="button" class="btn btn-primary btn-sm" data-bayar data-dialog="bayarDialog" data-id="<?= (int)$p['id'] ?>" data-sisa="<?= angka($sisa) ?>">Bayar</button>
                                 <a class="btn btn-ghost btn-sm" href="sewa_detail.php?id=<?= (int)$p['id'] ?>">Detail</a>
                             </span>
                         </td>
@@ -143,5 +130,35 @@ render_flash();
         </div>
     <?php endif; ?>
 </section>
+
+<dialog id="bayarDialog" class="modal">
+    <form method="post">
+        <?= csrf_field() ?>
+        <input type="hidden" name="do" value="bayar">
+        <input type="hidden" name="rental_id" data-field="id" value="">
+        <h2>Bayar piutang</h2>
+        <div>
+            <label for="bayarJumlah">Jumlah (Rp)</label>
+            <input type="text" id="bayarJumlah" name="jumlah" data-field="jumlah" inputmode="numeric">
+        </div>
+        <div style="margin-top:10px">
+            <label for="bayarTanggal">Tanggal</label>
+            <input type="date" id="bayarTanggal" name="tanggal" value="<?= date('Y-m-d') ?>">
+        </div>
+        <div style="margin-top:10px">
+            <label for="bayarMethod">Metode</label>
+            <select id="bayarMethod" name="method">
+                <option value="cash">Tunai</option>
+                <option value="transfer">Transfer</option>
+                <option value="qris">QRIS</option>
+                <option value="lainnya">Lainnya</option>
+            </select>
+        </div>
+        <div class="form-actions" style="margin-top:14px">
+            <button type="submit" class="btn btn-primary">Simpan</button>
+            <button type="button" class="btn btn-ghost" data-close>Batal</button>
+        </div>
+    </form>
+</dialog>
 <?php
 page_end();

@@ -6,8 +6,12 @@ require_login();
 $type = (string)($_GET['type'] ?? '');
 $dari = (string)($_GET['dari'] ?? date('Y-m-01'));
 $sampai = (string)($_GET['sampai'] ?? date('Y-m-d'));
+$mulai12 = date('Y-m-01', strtotime('-11 months'));
 
 $filename = 'laporan-' . $type . '-' . $dari . '-sd-' . $sampai . '.csv';
+if ($type === 'bulanan') {
+    $filename = 'laporan-bulanan-' . $mulai12 . '-sd-' . date('Y-m-d') . '.csv';
+}
 header('Content-Type: text/csv; charset=UTF-8');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
 
@@ -15,7 +19,7 @@ $out = fopen('php://output', 'w');
 fwrite($out, "\xEF\xBB\xBF"); // BOM supaya Excel membaca UTF-8 dengan benar
 
 $row = function (array $cells) use ($out) {
-    fputcsv($out, $cells, ';');
+    fputcsv($out, array_map('csv_safe', $cells), ';');
 };
 
 switch ($type) {
@@ -63,7 +67,9 @@ switch ($type) {
                     SUM(CASE WHEN sumber = 'in' THEN amount ELSE 0 END) pemasukan,
                     SUM(CASE WHEN sumber = 'out' THEN amount ELSE 0 END) pengeluaran
              FROM (SELECT date, amount, 'in' sumber FROM incomes UNION ALL SELECT date, amount, 'out' sumber FROM expenses) t
-             GROUP BY ym ORDER BY ym ASC"
+             WHERE date >= :mulai
+             GROUP BY ym ORDER BY ym ASC",
+            ['mulai' => $mulai12]
         );
         $row(['Bulan', 'Pemasukan', 'Pengeluaran', 'Selisih']);
         foreach ($rows as $r) {
@@ -90,7 +96,7 @@ switch ($type) {
         $rows = qall(
             "SELECT d.creditor_name, d.description, d.amount, COALESCE(e.paid,0) AS paid, d.due_date
              FROM debts d
-             LEFT JOIN (SELECT utang_id, SUM(amount) paid FROM expenses WHERE utang_id IS NOT NULL GROUP BY utang_id) e ON e.utang_id = d.id
+             LEFT JOIN (SELECT utang_id, SUM(amount) paid FROM expenses WHERE utang_id IS NOT NULL AND category = 'pembayaran_utang' GROUP BY utang_id) e ON e.utang_id = d.id
              WHERE d.amount > COALESCE(e.paid,0)
              ORDER BY d.due_date ASC"
         );
@@ -117,8 +123,12 @@ switch ($type) {
         $rows = qall(
             "SELECT d.code, d.name, d.buy_price, COALESCE(SUM(ri.price),0) revenue
              FROM dresses d
-             LEFT JOIN rental_items ri ON ri.dress_id = d.id
-             LEFT JOIN rentals r ON r.id = ri.rental_id AND r.status <> 'batal'
+             LEFT JOIN (
+                 SELECT ri.dress_id, ri.price
+                 FROM rental_items ri
+                 JOIN rentals r ON r.id = ri.rental_id
+                 WHERE r.status <> 'batal'
+             ) ri ON ri.dress_id = d.id
              GROUP BY d.id, d.code, d.name, d.buy_price HAVING revenue > 0 ORDER BY revenue DESC"
         );
         $row(['Kode', 'Nama baju', 'Pendapatan sewa', 'Modal', 'Selisih']);

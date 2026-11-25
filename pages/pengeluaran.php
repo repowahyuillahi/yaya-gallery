@@ -41,27 +41,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'hapus') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'simpan') {
     csrf_check();
     $amount = post_amount('jumlah');
+    if ($amount === null) {
+        flash_set('error', 'Nominal pengeluaran tidak valid.');
+        redirect($id ? 'pengeluaran.php?action=edit&id=' . $id : 'pengeluaran.php?action=baru');
+    }
     if ($amount <= 0) {
         flash_set('error', 'Nominal pengeluaran harus lebih dari nol.');
         redirect($id ? 'pengeluaran.php?action=edit&id=' . $id : 'pengeluaran.php?action=baru');
     }
     $cat = post_enum('kategori', array_keys($kategori), 'lainnya');
+    // Pembayaran utang tidak boleh diubah kategorinya; saldo utang bergantung padanya.
+    if ($id && (int)qval('SELECT utang_id FROM expenses WHERE id = ?', [$id]) > 0) {
+        $cat = 'pembayaran_utang';
+    }
     $desc = post('keterangan') ?: ($kategori[$cat] ?? 'Pengeluaran');
-    if ($id) {
-        $old = (string)qval('SELECT receipt_photo FROM expenses WHERE id = ?', [$id]);
-        $foto = upload_image('bukti', 'receipts', $old ?: null) ?? $old;
-        q('UPDATE expenses SET date=:d, category=:c, description=:desc, amount=:amt, method=:m, receipt_photo=:f WHERE id=:id', [
-            'd' => post_date('tanggal') ?: date('Y-m-d'), 'c' => $cat, 'desc' => $desc, 'amt' => $amount,
-            'm' => post_enum('method', ['cash', 'transfer', 'qris', 'lainnya'], 'cash'), 'f' => $foto ?: null, 'id' => $id,
-        ]);
-        flash_set('ok', 'Pengeluaran diperbarui.');
-    } else {
-        $foto = upload_image('bukti', 'receipts');
-        q('INSERT INTO expenses (date, category, description, amount, method, receipt_photo) VALUES (:d, :c, :desc, :amt, :m, :f)', [
-            'd' => post_date('tanggal') ?: date('Y-m-d'), 'c' => $cat, 'desc' => $desc, 'amt' => $amount,
-            'm' => post_enum('method', ['cash', 'transfer', 'qris', 'lainnya'], 'cash'), 'f' => $foto,
-        ]);
-        flash_set('ok', 'Pengeluaran ' . rupiah($amount) . ' tercatat.');
+    try {
+        if ($id) {
+            $old = (string)qval('SELECT receipt_photo FROM expenses WHERE id = ?', [$id]);
+            $foto = upload_image('bukti', 'receipts', $old ?: null) ?? $old;
+            q('UPDATE expenses SET date=:d, category=:c, description=:desc, amount=:amt, method=:m, receipt_photo=:f WHERE id=:id', [
+                'd' => post_date('tanggal') ?: date('Y-m-d'), 'c' => $cat, 'desc' => $desc, 'amt' => $amount,
+                'm' => post_enum('method', ['cash', 'transfer', 'qris', 'lainnya'], 'cash'), 'f' => $foto ?: null, 'id' => $id,
+            ]);
+            flash_set('ok', 'Pengeluaran diperbarui.');
+        } else {
+            $foto = upload_image('bukti', 'receipts');
+            q('INSERT INTO expenses (date, category, description, amount, method, receipt_photo) VALUES (:d, :c, :desc, :amt, :m, :f)', [
+                'd' => post_date('tanggal') ?: date('Y-m-d'), 'c' => $cat, 'desc' => $desc, 'amt' => $amount,
+                'm' => post_enum('method', ['cash', 'transfer', 'qris', 'lainnya'], 'cash'), 'f' => $foto,
+            ]);
+            flash_set('ok', 'Pengeluaran ' . rupiah($amount) . ' tercatat.');
+        }
+    } catch (RuntimeException $e) {
+        flash_set('error', $e->getMessage());
+        redirect($id ? 'pengeluaran.php?action=edit&id=' . $id : 'pengeluaran.php?action=baru');
     }
     redirect('pengeluaran.php');
 }
@@ -113,11 +126,15 @@ render_flash();
                 </div>
                 <div>
                     <label for="kategori">Kategori</label>
-                    <select id="kategori" name="kategori">
+                    <select id="kategori" name="kategori" <?= !empty($edit['utang_id']) ? 'disabled' : '' ?>>
                         <?php foreach ($kategori as $k => $l): ?>
                             <option value="<?= $k ?>" <?= ($v['category'] ?? 'lainnya') === $k ? 'selected' : '' ?>><?= $l ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <?php if (!empty($edit['utang_id'])): ?>
+                        <input type="hidden" name="kategori" value="pembayaran_utang">
+                        <p class="hint">Ini pembayaran utang, kategorinya tidak bisa diubah.</p>
+                    <?php endif; ?>
                 </div>
                 <div>
                     <label for="jumlah">Nominal (Rp)</label>
@@ -138,7 +155,7 @@ render_flash();
                 <div class="span-all">
                     <label for="buktiInput">Bukti pembayaran (foto)</label>
                     <?php if (!empty($v['receipt_photo'])): ?>
-                        <img src="<?= u($v['receipt_photo']) ?>" alt="Bukti pembayaran" width="120" height="120"
+                        <img src="<?= file_url($v['receipt_photo']) ?>" alt="Bukti pembayaran" width="120" height="120"
                              style="border-radius:var(--radius-s);object-fit:cover;margin-bottom:8px;display:block">
                     <?php endif; ?>
                     <input type="file" id="buktiInput" name="bukti" accept="image/jpeg,image/png,image/webp">
@@ -205,7 +222,7 @@ render_flash();
                         <td><?= e($kategori[$r['category']] ?? $r['category']) ?></td>
                         <td><?= e($r['description']) ?><?= $r['creditor_name'] ? '<span class="cell-sub">utang: ' . e($r['creditor_name']) . '</span>' : '' ?></td>
                         <td><?= badge($r['method']) ?></td>
-                        <td><?= $r['receipt_photo'] ? '<a class="textlink" href="' . u($r['receipt_photo']) . '" target="_blank" rel="noopener">Lihat</a>' : '-' ?></td>
+                        <td><?= $r['receipt_photo'] ? '<a class="textlink" href="' . file_url($r['receipt_photo']) . '" target="_blank" rel="noopener">Lihat</a>' : '-' ?></td>
                         <td class="num"><?= rupiah($r['amount']) ?></td>
                         <td>
                             <span class="rowactions">

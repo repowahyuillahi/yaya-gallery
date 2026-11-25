@@ -15,12 +15,13 @@ $prefillCustomer = (int)($_GET['customer'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
-    $items = array_map('intval', (array)($_POST['items'] ?? []));
+    $items = array_values(array_unique(array_map('intval', (array)($_POST['items'] ?? []))));
     $items = array_values(array_filter($items));
 
     $err = [];
-    if (!post_date('return_date')) {
-        $err[] = 'Tanggal pengembalian wajib diisi.';
+    $returnDate = post_date('return_date');
+    if (!$returnDate) {
+        $err[] = 'Tanggal pengembalian wajib diisi dan harus tanggal yang valid.';
     }
     if (!$items) {
         $err[] = 'Pilih minimal satu baju.';
@@ -28,6 +29,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $waBaru = preg_replace('/[^0-9+]/', '', post('new_whatsapp'));
     $customerId = post_int('customer_id');
     $namaBaru = post('new_nama');
+    if ($customerId === 0 && $namaBaru === '') {
+        $err[] = 'Pilih pelanggan terdaftar atau isi nama pelanggan baru.';
+    }
+
+    // Nominal: tolak input tidak valid (huruf, minus, format aneh) alih-alih menebak.
+    $deposit = post_amount('deposit');
+    $discount = post_amount('discount');
+    $extraFee = post_amount('extra_fee');
+    $dp = post_amount('dp');
+    foreach (['deposit' => $deposit, 'diskon' => $discount, 'ongkos tambahan' => $extraFee, 'DP' => $dp] as $label => $val) {
+        if ($val === null) {
+            $err[] = 'Nominal ' . $label . ' tidak valid.';
+        }
+    }
+
+    // Tanggal: validasi urutan ambil <= kembali; tanggal tidak valid tidak boleh diam-diam jadi hari ini.
+    $rentDate = post_date('rent_date');
+    $pickupDate = post_date('pickup_date');
+    $dueDate = post_date('due_date');
+    if (post('rent_date') !== '' && $rentDate === null) {
+        $err[] = 'Tanggal penyewaan tidak valid.';
+    }
+    if (post('pickup_date') !== '' && $pickupDate === null) {
+        $err[] = 'Tanggal pengambilan tidak valid.';
+    }
+    if (post('due_date') !== '' && $dueDate === null) {
+        $err[] = 'Jatuh tempo pembayaran tidak valid.';
+    }
+    if ($pickupDate && $returnDate && $pickupDate > $returnDate) {
+        $err[] = 'Tanggal pengambilan tidak boleh setelah tanggal pengembalian.';
+    }
 
     if (!$err) {
         db()->beginTransaction();
@@ -40,9 +72,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$c) {
                 throw new RuntimeException('Pelanggan belum dipilih.');
             }
-            $rentDate = post_date('rent_date') ?: date('Y-m-d');
-            $pickupDate = post_date('pickup_date') ?: $rentDate;
-            $returnDate = post_date('return_date');
+
+            // Kunci baris baju dan periksa ulang ketersediaan saat POST, supaya baju
+            // yang sama tidak bisa disewa dua kali lewat dua tab.
+            $subtotal = 0.0;
+            foreach ($items as $dressId) {
+                $d = qone('SELECT id, code, rent_price, status, item_condition FROM dresses WHERE id = ? FOR UPDATE', [$dressId]);
+                if (!$d) {
+                    throw new RuntimeException('Salah satu baju tidak ditemukan.');
+                }
+                if ($d['status'] !== 'tersedia' || $d['item_condition'] === 'rusak') {
+                    throw new RuntimeException('Baju ' . $d['code'] . ' sudah tidak tersedia. Muat ulang form lalu pilih baju lain.');
+                }
+                $subtotal += (float)$d['rent_price'];
+            }
+
+            if ($discount > $subtotal) {
+                throw new RuntimeException('Diskon tidak boleh melebihi subtotal baju (' . rupiah($subtotal) . ').');
+            }
+            $total = $subtotal - $discount + $extraFee;
+            if ($total < 0) {
+                throw new RuntimeException('Total tagihan tidak boleh negatif.');
+            }
+            if ($dp > $total) {
+                throw new RuntimeException('DP tidak boleh melebihi total tagihan (' . rupiah($total) . ').');
+            }
+
+            $rentDate = $rentDate ?: date('Y-m-d');
+            $pickupDate = $pickupDate ?: $rentDate;
+            $dueDate = $dueDate ?: $returnDate;
             $code = next_code('rentals', 'YG-INV-');
             q(
                 'INSERT INTO rentals (code, customer_id, user_id, rent_date, pickup_date, return_date, due_date,
@@ -55,10 +113,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'rent'   => $rentDate,
                     'pickup' => $pickupDate,
                     'ret'    => $returnDate,
-                    'due'    => post_date('due_date') ?: $returnDate,
-                    'dep'    => post_amount('deposit'),
-                    'disc'   => post_amount('discount'),
-                    'extra'  => post_amount('extra_fee'),
+                    'due'    => $dueDate,
+                    'dep'    => $deposit,
+                    'disc'   => $discount,
+                    'extra'  => $extraFee,
                     'method' => post_enum('payment_method', ['cash', 'transfer', 'qris', 'lainnya'], 'cash'),
                     'status' => $pickupDate <= date('Y-m-d') ? 'disewa' : 'booking',
                     'notes'  => post('notes') ?: null,
@@ -67,14 +125,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $rentalId = (int)db()->lastInsertId();
             foreach ($items as $dressId) {
                 $d = qone('SELECT rent_price FROM dresses WHERE id = ?', [$dressId]);
-                if ($d) {
-                    q('INSERT INTO rental_items (rental_id, dress_id, price) VALUES (?, ?, ?)', [$rentalId, $dressId, $d['rent_price']]);
-                }
+                q('INSERT INTO rental_items (rental_id, dress_id, price) VALUES (?, ?, ?)', [$rentalId, $dressId, $d['rent_price']]);
             }
             rental_refresh_totals($rentalId);
             $statusBaju = $pickupDate <= date('Y-m-d') ? 'disewa' : 'booking';
             q('UPDATE dresses SET status = :s WHERE id IN (' . implode(',', $items) . ')', ['s' => $statusBaju]);
-            $dp = post_amount('dp');
             if ($dp > 0) {
                 q(
                     'INSERT INTO incomes (date, category, rental_id, customer_id, description, amount, method)
@@ -117,7 +172,7 @@ render_flash();
                 <div class="form-grid">
                     <div>
                         <label for="customer_id">Pilih pelanggan terdaftar</label>
-                        <select id="customer_id" name="customer_id" required>
+                        <select id="customer_id" name="customer_id">
                             <option value="">Pilih pelanggan</option>
                             <?php foreach ($customers as $c): ?>
                                 <option value="<?= (int)$c['id'] ?>" <?= $prefillCustomer === (int)$c['id'] ? 'selected' : '' ?>>
@@ -191,7 +246,7 @@ render_flash();
                             <input type="checkbox" name="items[]" value="<?= (int)$d['id'] ?>" data-price="<?= (int)$d['rent_price'] ?>">
                             <span class="pick-body">
                                 <?php if ($d['photo']): ?>
-                                    <img src="<?= u($d["photo"]) ?>" alt="Foto <?= e($d['name']) ?>" width="160" height="160" loading="lazy">
+                                    <img src="<?= file_url($d["photo"]) ?>" alt="Foto <?= e($d['name']) ?>" width="160" height="160" loading="lazy">
                                 <?php else: ?>
                                     <span class="pick-noimg">Belum ada foto</span>
                                 <?php endif; ?>
@@ -241,6 +296,17 @@ render_flash();
                     </div>
                 </div>
             </fieldset>
+        </div>
+        <div class="card" id="sewaSummary" style="margin-top:16px;max-width:980px">
+            <h2 class="section" style="margin-top:0;padding-left:0">Ringkasan</h2>
+            <dl class="kv">
+                <div><dt>Subtotal baju</dt><dd id="sumSubtotal">Rp 0</dd></div>
+                <div><dt>Diskon</dt><dd id="sumDiscount">- Rp 0</dd></div>
+                <div><dt>Ongkos tambahan</dt><dd id="sumExtra">Rp 0</dd></div>
+                <div><dt>Total tagihan</dt><dd class="strong totline" id="sumTotal">Rp 0</dd></div>
+                <div><dt>DP dibayar sekarang</dt><dd id="sumDp">Rp 0</dd></div>
+                <div><dt>Sisa setelah DP</dt><dd class="strong" id="sumSisa">Rp 0</dd></div>
+            </dl>
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Simpan transaksi</button>

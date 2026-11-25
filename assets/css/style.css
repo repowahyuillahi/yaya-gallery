@@ -160,17 +160,20 @@ a:hover { color: var(--rose-deep); }
 /* Ikon berukuran tetap; SVG tanpa dimensi melebar mengikuti kontainer */
 .ic { width: 19px; height: 19px; flex: none; }
 
+.nav-logout-form { margin: 16px 0 0; border-top: 1px solid var(--line-soft); }
+
 .nav-logout {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin: 16px 0 0;
+    width: 100%;
     padding: 10px;
-    border-top: 1px solid var(--line-soft);
+    border: 0;
+    background: none;
     color: var(--muted);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
+    font: 600 14px var(--font);
+    cursor: pointer;
+    text-align: left;
 }
 
 .nav-logout:hover { color: var(--late); }
@@ -390,7 +393,7 @@ textarea { min-height: 84px; resize: vertical; }
 
 input:hover, select:hover, textarea:hover { border-color: var(--stitch); }
 
-input::placeholder, textarea::placeholder { color: #A79C97; }
+input::placeholder, textarea::placeholder { color: var(--muted); }
 
 .hint { font-size: 12.5px; color: var(--muted); margin: 5px 0 0; }
 
@@ -480,7 +483,7 @@ th, td { padding: 10px 14px; text-align: left; font-size: 14px; }
 th {
     font-size: 12px;
     font-weight: 700;
-    color: var(--muted);
+    color: #6E625E;
     background: var(--rose-tint-2);
     border-bottom: 1px solid var(--line);
     white-space: nowrap;
@@ -621,6 +624,8 @@ tfoot td { font-weight: 700; border-top: 1px solid var(--line); border-bottom: 0
     cursor: pointer;
     color: inherit;
     padding: 0 2px;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 /* ---------- Dashboard ---------- */
@@ -742,6 +747,9 @@ tfoot td { font-weight: 700; border-top: 1px solid var(--line); border-bottom: 0
 
 .invoice-actions { max-width: 720px; margin: 0 auto; display: flex; gap: 10px; padding: 0 16px; }
 
+/* Invoice hanya dua kolom (baju + harga) supaya muat di layar sempit tanpa scroll */
+.invoice-page .items-table { min-width: 0; }
+
 /* ---------- Overlay drawer mobile ---------- */
 
 .overlay {
@@ -750,6 +758,23 @@ tfoot td { font-weight: 700; border-top: 1px solid var(--line); border-bottom: 0
     background: rgba(59, 50, 48, .35);
     z-index: 39;
 }
+
+/* ---------- Dialog modal ---------- */
+
+.modal {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    max-width: 360px;
+    width: calc(100vw - 32px);
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-drawer);
+}
+
+.modal::backdrop { background: rgba(59, 50, 48, .35); }
+
+.modal h2 { margin: 0 0 14px; font-size: 16px; font-weight: 800; }
 
 /* ---------- Responsif ---------- */
 
@@ -785,9 +810,11 @@ tfoot td { font-weight: 700; border-top: 1px solid var(--line); border-bottom: 0
 
     .btn, .menu-btn { min-height: 44px; }
 
-    .btn-sm { min-height: 38px; }
+    .btn-sm { min-height: 44px; }
 
     .sidebar nav a { min-height: 44px; }
+
+    a.textlink { display: inline-flex; align-items: center; min-height: 44px; }
 
     .statgrid { grid-template-columns: repeat(2, 1fr); }
 
@@ -822,6 +849,12 @@ tfoot td { font-weight: 700; border-top: 1px solid var(--line); border-bottom: 0
     .pick-noimg { aspect-ratio: 4 / 3; }
 
     .pagebar .btn { flex: 1 1 auto; }
+
+    .invoice-page { padding: 20px 16px; margin: 16px auto; }
+
+    .invoice-head { flex-direction: column; gap: 8px; }
+
+    .invoice-meta { text-align: left; }
 }
 
 @media (prefers-reduced-motion: reduce) {

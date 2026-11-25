@@ -13,8 +13,10 @@ di hosting cPanel ada di [DEPLOY.md](DEPLOY.md).
    C:\xampp\mysql\bin\mysql.exe -u root < database/database.sql
    ```
 
-3. (Opsional) Isi data contoh supaya aplikasi langsung terlihat berisi. Semua data
-   contoh bisa dihapus kapan saja dari aplikasi:
+3. (Opsional) Isi data contoh supaya aplikasi langsung terlihat berisi. Data contoh
+   hanya aman di database yang benar-benar kosong (mengacu ID 1..4). Baju dan pelanggan
+   yang sudah bertransaksi tidak bisa dihapus lewat aplikasi, hanya bisa dibatalkan atau
+   diubah statusnya; untuk reset total, drop database lalu import ulang:
 
    ```
    C:\xampp\mysql\bin\mysql.exe -u root yaya_gallery < database/database_contoh.sql

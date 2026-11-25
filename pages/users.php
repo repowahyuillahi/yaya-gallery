@@ -34,6 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'simpan') 
         flash_set('error', 'Username sudah dipakai akun lain.');
         redirect($id ? 'users.php?action=edit&id=' . $id : 'users.php?action=baru');
     }
+    if ($password !== '' && strlen($password) < 6) {
+        flash_set('error', 'Password minimal 6 karakter.');
+        redirect($id ? 'users.php?action=edit&id=' . $id : 'users.php?action=baru');
+    }
     if ($id) {
         // Akun sendiri tidak boleh turunkan hak atau matikan, supaya tidak terkunci.
         if ($id === (int)$me['id']) {

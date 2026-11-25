@@ -66,7 +66,7 @@ $piutang = qall(
 $utang = qall(
     "SELECT d.creditor_name, d.amount, d.due_date, COALESCE(e.paid,0) AS paid
      FROM debts d
-     LEFT JOIN (SELECT utang_id, SUM(amount) paid FROM expenses WHERE utang_id IS NOT NULL GROUP BY utang_id) e ON e.utang_id = d.id
+     LEFT JOIN (SELECT utang_id, SUM(amount) paid FROM expenses WHERE utang_id IS NOT NULL AND category = 'pembayaran_utang' GROUP BY utang_id) e ON e.utang_id = d.id
      WHERE d.amount > COALESCE(e.paid,0)
      ORDER BY d.due_date ASC"
 );
@@ -84,8 +84,12 @@ $populer = qall(
 $profit = qall(
     "SELECT d.code, d.name, d.buy_price, COALESCE(SUM(ri.price),0) revenue
      FROM dresses d
-     LEFT JOIN rental_items ri ON ri.dress_id = d.id
-     LEFT JOIN rentals r ON r.id = ri.rental_id AND r.status <> 'batal'
+     LEFT JOIN (
+         SELECT ri.dress_id, ri.price
+         FROM rental_items ri
+         JOIN rentals r ON r.id = ri.rental_id
+         WHERE r.status <> 'batal'
+     ) ri ON ri.dress_id = d.id
      GROUP BY d.id, d.code, d.name, d.buy_price
      HAVING revenue > 0
      ORDER BY revenue DESC"

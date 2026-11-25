@@ -1,5 +1,6 @@
 # Konten upload (foto baju, bukti, logo) tetap lokal; hanya file penjaga ikut repo
 uploads/*
+!uploads/.htaccess
 !uploads/index.php
 !uploads/dresses/
 !uploads/receipts/

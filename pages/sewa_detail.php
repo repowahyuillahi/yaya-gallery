@@ -20,9 +20,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'batal') {
         flash_set('error', 'Transaksi ini tidak bisa dibatalkan.');
         redirect('sewa_detail.php?id=' . $id);
     }
-    q('UPDATE rentals SET status = "batal" WHERE id = ?', [$id]);
-    q('UPDATE dresses d JOIN rental_items ri ON ri.dress_id = d.id SET d.status = "tersedia" WHERE ri.rental_id = ?', [$id]);
-    flash_set('ok', 'Transaksi ' . $rental['code'] . ' dibatalkan. Uang yang sudah dibayar tidak otomatis dikembalikan, catat manual bila uangnya dikembalikan.');
+    $paid = rental_paid($id);
+    db()->beginTransaction();
+    try {
+        q('UPDATE rentals SET status = "batal" WHERE id = ?', [$id]);
+        // Bebaskan baju hanya bila tidak sedang disewa transaksi aktif lain.
+        q(
+            'UPDATE dresses d
+             JOIN rental_items ri ON ri.dress_id = d.id
+             SET d.status = "tersedia"
+             WHERE ri.rental_id = ?
+               AND NOT EXISTS (
+                   SELECT 1 FROM rental_items ri2
+                   JOIN rentals r2 ON r2.id = ri2.rental_id
+                   WHERE ri2.dress_id = d.id AND ri2.rental_id <> ? AND r2.status IN ("booking","disewa")
+               )',
+            [$id, $id]
+        );
+        // Refund: catat pemasukan negatif supaya jejak uang tetap utuh.
+        if ($paid > 0) {
+            q(
+                'INSERT INTO incomes (date, category, rental_id, customer_id, description, amount, method)
+                 VALUES (:d, "lainnya", :rid, :cid, :desc, :amt, :m)',
+                [
+                    'd' => date('Y-m-d'), 'rid' => $id, 'cid' => (int)$rental['customer_id'],
+                    'desc' => 'Refund pembatalan ' . $rental['code'], 'amt' => -$paid,
+                    'm' => $rental['payment_method'],
+                ]
+            );
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        flash_set('error', 'Gagal membatalkan transaksi: ' . $e->getMessage());
+        redirect('sewa_detail.php?id=' . $id);
+    }
+    flash_set('ok', 'Transaksi ' . $rental['code'] . ' dibatalkan.' . ($paid > 0 ? ' Pembayaran ' . rupiah($paid) . ' dicatat sebagai refund.' : ''));
     redirect('sewa_detail.php?id=' . $id);
 }
 
@@ -35,8 +68,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'bayar') {
         flash_set('error', 'Transaksi sudah dibatalkan.');
         redirect('sewa_detail.php?id=' . $id);
     }
+    if ($amount === null) {
+        flash_set('error', 'Nominal pembayaran tidak valid.');
+        redirect('sewa_detail.php?id=' . $id);
+    }
     if ($amount <= 0) {
         flash_set('error', 'Nominal pembayaran harus lebih dari nol.');
+        redirect('sewa_detail.php?id=' . $id);
+    }
+    $paid = rental_paid($id);
+    $sisa = (float)$rental['total'] - $paid;
+    if ($sisa <= 0) {
+        flash_set('error', 'Tagihan sudah lunas.');
+        redirect('sewa_detail.php?id=' . $id);
+    }
+    if ($amount > $sisa) {
+        flash_set('error', 'Nominal melebihi sisa tagihan (' . rupiah($sisa) . ').');
         redirect('sewa_detail.php?id=' . $id);
     }
     q(
