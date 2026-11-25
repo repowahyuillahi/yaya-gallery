@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint PHP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Find PHP files
+        run: |
+          find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n 1 -I {} sh -c 'php -l "{}" || exit 1'
+          echo "All PHP files pass lint."

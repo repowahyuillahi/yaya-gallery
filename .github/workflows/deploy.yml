@@ -1,0 +1,43 @@
+name: Deploy
+
+on:
+  # Deploy otomatis hanya saat push ke main. CI (lint) tetap jalan lebih dulu di ci.yml.
+  push:
+    branches: [main]
+
+  # Bisa juga deploy manual dari tab Actions:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+    # Jaga agar satu deploy tidak overlap dengan yang lain (mis. push bertubi-tubi).
+    concurrency:
+      group: deploy-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          # Folder target di aaPanel (site root). Default aaPanel: /www/wwwroot/nama-site
+          script: |
+            set -e
+            APP_DIR="${{ secrets.DEPLOY_PATH }}"
+            echo "Deploy ke $APP_DIR ..."
+            if [ -d "$APP_DIR/.git" ]; then
+              git -C "$APP_DIR" pull --ff-only
+            else
+              echo "Folder $APP_DIR belum berisi repo git."
+              echo "Sebelum deploy pertama, clone manual dulu di server (bisa lewat File Manager aaPanel atau SSH):"
+              echo "  cd $APP_DIR && git clone https://github.com/repowahyuillahi/yaya-gallery.git ."
+              exit 1
+            fi
+            # Kredensial DB (app/config.local.php, tidak ikut repo) tetap aman di server.
+            echo "Selesai. Cek domain site di aaPanel untuk hasilnya."
